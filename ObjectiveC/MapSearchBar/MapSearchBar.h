@@ -22,7 +22,7 @@
 
 @interface MapSearchBar : UISearchBar<UISearchBarDelegate>
 
-@property (nonatomic) IBInspectable NSString * rightBarText;
+
 @property(weak,nonatomic) IBOutlet id<MapSearchBarDataDelegate>delegateMSB;
 
 @end

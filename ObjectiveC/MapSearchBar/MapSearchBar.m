@@ -7,6 +7,8 @@
 //
 
 #import "MapSearchBar.h"
+#import <objc/runtime.h>
+static char associateKey;
 
 @implementation MapSearchBar
 
@@ -14,14 +16,16 @@
    
     
 }
-
-
 @synthesize delegateMSB;
 
 - (void)awakeFromNib
 {
     
     [super awakeFromNib];
+    
+    
+    
+
 }
 
 
@@ -36,20 +40,33 @@
         
         [keyboardDoneButtonView sizeToFit];
         
-        UIBarButtonItem *doneButton = [[UIBarButtonItem alloc] initWithTitle:@"Cancel"
+        UIBarButtonItem *doneButton = [[UIBarButtonItem alloc] initWithTitle: @"Cancel"
                                                                        style:UIBarButtonItemStyleDone target:self
                                                                       action:@selector(numberPaddoneClicked:)];
         UIBarButtonItem *space=[[UIBarButtonItem alloc]initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
         
-        [keyboardDoneButtonView setItems:[NSArray arrayWithObjects:space,doneButton, nil]];
+        CGRect frameimg = CGRectMake(0,0,  [UIScreen mainScreen].bounds.size.width - 100  ,70);
+        
+        UILabel * lblFormatedText = [[UILabel alloc] initWithFrame:frameimg];
+        
+        lblFormatedText.text = @"";
+        
+        lblFormatedText.textColor = [UIColor whiteColor];
         
         
+        UIBarButtonItem *leftLabel =[[UIBarButtonItem alloc] initWithCustomView:lblFormatedText];
         
+        objc_setAssociatedObject(keyboardDoneButtonView, &associateKey, lblFormatedText, OBJC_ASSOCIATION_RETAIN);
+        
+        
+       
+            
+    [keyboardDoneButtonView setItems:[NSArray arrayWithObjects:leftLabel,space,space,doneButton, nil]];
+     
         self.inputAccessoryView = keyboardDoneButtonView;
+        
         self.delegate = self;
-        
-        
- 
+
     }
     
     
@@ -57,20 +74,24 @@
     return self;
 }
 
-
 - (void)keyboardWillShow:(NSNotification *)n
 {
-  
+}
+#pragma mark- SearchBar Delegate
+- (BOOL)searchBarShouldBeginEditing:(UISearchBar *)searchBar{
+    
+
+ UILabel *label = objc_getAssociatedObject(self.inputAccessoryView , &associateKey);
+ label.text = @"";
+ return YES;
     
 }
 
-
-
-#pragma mark- Delegate
-- (BOOL)searchBarShouldBeginEditing:(UISearchBar *)searchBar{
+- (void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText{
     
-    return YES;
+    UILabel *label = objc_getAssociatedObject(self.inputAccessoryView , &associateKey);
     
+    label.text = [self getFormmatedText:searchText];
 }
 
 
@@ -86,19 +107,19 @@
                 
                 CLLocationCoordinate2D coordinates = [self getLocationFromAddressString:searchBar.text] ;
                 
-                
                 MKCoordinateRegion region;
                 
                 region.center.latitude =coordinates.latitude;
-                region.center.longitude = coordinates.longitude;
-                region.span.latitudeDelta = 1.0;
-                region.span.longitudeDelta = 1.0;
                 
+                region.center.longitude = coordinates.longitude;
+                
+                region.span.latitudeDelta = 1.0;
+                
+                region.span.longitudeDelta = 1.0;
         
                 [delegateMSB mapSearchBarDidClickOnSearchButton:[self getLocationFromAddressString:searchBar.text] region:region searchBar:self];
                 
                  self.text = @"";
-                
                 
                 [self resignFirstResponder];
                 
@@ -106,6 +127,36 @@
             
         }
     
+}
+#pragma mark- Functions
+
+
+-(NSString*) getFormmatedText: (NSString*) addressStr
+{
+    NSString * formatedText  = @"";
+
+    
+    
+    NSString *esc_addr =  [addressStr stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+    NSString *req = [NSString stringWithFormat:@"http://maps.google.com/maps/api/geocode/json?sensor=false&address=%@", esc_addr];
+    NSString *result = [NSString stringWithContentsOfURL:[NSURL URLWithString:req] encoding:NSUTF8StringEncoding error:NULL];
+    if (result) {
+        NSScanner *scanner = [NSScanner scannerWithString:result];
+        if ([scanner scanUpToString:@"\"formatted_address\" :" intoString:nil] && [scanner scanString:@"\"formatted_address\" :" intoString:nil])
+        {
+            [scanner scanUpToString:@"\"formatted_address\" :" intoString:&formatedText];
+            
+            
+            
+           
+        }
+        
+        else{
+            formatedText  = @"";
+        }
+    }
+ 
+    return formatedText;
 }
 
 -(CLLocationCoordinate2D) getLocationFromAddressString: (NSString*) addressStr
@@ -115,10 +166,6 @@
     NSString *req = [NSString stringWithFormat:@"http://maps.google.com/maps/api/geocode/json?sensor=false&address=%@", esc_addr];
     NSString *result = [NSString stringWithContentsOfURL:[NSURL URLWithString:req] encoding:NSUTF8StringEncoding error:NULL];
     if (result) {
-        
-        
-        
-    
         NSScanner *scanner = [NSScanner scannerWithString:result];
     if ([scanner scanUpToString:@"\"location\" :" intoString:nil] && [scanner scanString:@"\"location\" :" intoString:nil])
     {
@@ -131,41 +178,11 @@
             }
         }
     }
-    
-    
-    
     }
     CLLocationCoordinate2D center;
     center.latitude=latitude;
     center.longitude = longitude;
-    NSLog(@"View Controller get Location Logitute : %f",center.latitude);
-    NSLog(@"View Controller get Location Latitute : %f",center.longitude);
     return center;
-    
-
-    
-    
-    
-    
-//    CLLocationCoordinate2D myLocation;
-//    // -- modified from the stackoverflow page - we use the SBJson parser instead of the string scanner --
-//    
-//    NSString       *esc_addr1 = [addressStr stringByAddingPercentEscapesUsingEncoding: NSUTF8StringEncoding];
-//    NSString            *req1 = [NSString stringWithFormat: @"http://maps.google.com/maps/api/geocode/json?sensor=false&address=%@", esc_addr1];
-//    NSDictionary *googleResponse =  [NSString stringWithContentsOfURL:[NSURL URLWithString:req1] encoding:NSUTF8StringEncoding error:NULL];
-//    
-//    NSDictionary    *resultsDict = [googleResponse valueForKey:  @"results"];   // get the results dictionary
-//    NSDictionary   *geometryDict = [   resultsDict valueForKey: @"geometry"];   // geometry dictionary within the  results dictionary
-//    NSDictionary   *locationDict = [  geometryDict valueForKey: @"location"];   // location dictionary within the geometry dictionary
-//    
-//    // -- you should be able to strip the latitude & longitude from google's location information (while understanding what the json parser returns) --
-//    NSArray *latArray = [locationDict valueForKey: @"lat"]; NSString *latString = [latArray lastObject];     // (one element) array entries provided by the json parser
-//    NSArray *lngArray = [locationDict valueForKey: @"lng"]; NSString *lngString = [lngArray lastObject];     // (one element) array entries provided by the json parser
-//    
-//    myLocation.latitude = [latString doubleValue];     // the json parser uses NSArrays which don't support "doubleValue"
-//    myLocation.longitude = [lngString doubleValue];
-//    
-    //return myLocation;
 }
 
 
@@ -173,21 +190,12 @@
 
 -(void)numberPaddoneClicked:(id)sender
 {
-  //  [self datePickerValueChanged:datePicker];
     self.text = @"";
-    
     [self resignFirstResponder];
-    
-//    if (delegateDP)
-//    {
-//        if ([delegateDP respondsToSelector:@selector(vjDatePickerClickOnDoneBytton:)])
-//        {
-//            [delegateDP vjDatePickerClickOnDoneBytton:self];
-//        }
-//        
-//    }
-    
+
     
 }
+
+
 
 @end
