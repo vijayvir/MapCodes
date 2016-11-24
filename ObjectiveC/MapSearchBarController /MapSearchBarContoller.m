@@ -22,7 +22,7 @@
 
 #pragma mark - SearchBar Controller
 
-#pragma mark - Initial metthods 
+#pragma mark - Initial methods
 
 -(void)mapSearchBarContollerInitialize
 {
@@ -44,6 +44,7 @@
     
     
 }
+#pragma mark - UISearchController delegate
 
 - (void)willPresentSearchController:(UISearchController *)searchController
 {
@@ -59,6 +60,16 @@
     
 }
 
+#pragma mark - UISearchDisplayController delegate
+- (void)searchDisplayControllerDidEndSearch:(UISearchDisplayController *)controller
+{
+    resultSearchController.active = false;
+    
+    if(resultSearchController.active  == false)
+    {
+        [self searchBarIsActive:NO];
+    }
+}
 
 - (void)searchDisplayController:(UISearchDisplayController *)controller willShowSearchResultsTableView:(UITableView *)tableView {
     

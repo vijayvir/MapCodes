@@ -25,13 +25,13 @@
 
 @interface MapSearchBarContoller : NSObject <UISearchControllerDelegate,UISearchDisplayDelegate,UISearchResultsUpdating , UISearchBarDelegate>
 
-
+#pragma mark- IBOutlet
 @property (weak, nonatomic) IBOutlet UISearchDisplayController *resultSearchController;
 
 @property(weak,nonatomic) IBOutlet id<MapSearchBarContollerDelegate>delegateMSB;
 
 
-#pragma mark- 
+#pragma mark- Functions 
 
 -(void)mapSearchBarContollerInitialize;
 
